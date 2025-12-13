@@ -40,7 +40,6 @@ public class QuestionBankVO implements Serializable {
      */
     private String picture;
 
-
     /**
      * 创建用户 id
      */
@@ -56,12 +55,15 @@ public class QuestionBankVO implements Serializable {
      */
     private Date updateTime;
 
-    Page<Question> questionPage;
-
     /**
      * 创建用户信息
      */
     private UserVO user;
+
+    /**
+     * 题库里的题目列表（分页）
+     */
+    Page<QuestionVO> questionPage;
 
     /**
      * 封装类转对象

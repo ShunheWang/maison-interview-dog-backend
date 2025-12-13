@@ -18,6 +18,7 @@ import com.maison.interviewdog.model.entity.Question;
 import com.maison.interviewdog.model.entity.QuestionBank;
 import com.maison.interviewdog.model.entity.User;
 import com.maison.interviewdog.model.vo.QuestionBankVO;
+import com.maison.interviewdog.model.vo.QuestionVO;
 import com.maison.interviewdog.service.QuestionBankService;
 import com.maison.interviewdog.service.QuestionService;
 import com.maison.interviewdog.service.UserService;
@@ -152,8 +153,12 @@ public class QuestionBankController {
         if (needQueryQuestionList) {
             QuestionQueryRequest questionQueryRequest = new QuestionQueryRequest();
             questionQueryRequest.setQuestionBankId(id);
+            // 可以按需支持更多的题目搜索参数，比如分页
+            questionQueryRequest.setPageSize(questionBankQueryRequest.getPageSize());
+            questionQueryRequest.setCurrent(questionBankQueryRequest.getCurrent());
             Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
-            questionBankVO.setQuestionPage(questionPage);
+            Page<QuestionVO> questionVOPage = questionService.getQuestionVOPage(questionPage, request);
+            questionBankVO.setQuestionPage(questionVOPage);
         }
         // 获取封装类
         return ResultUtils.success(questionBankVO);
@@ -186,11 +191,11 @@ public class QuestionBankController {
      */
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<QuestionBankVO>> listQuestionBankVOByPage(@RequestBody QuestionBankQueryRequest questionBankQueryRequest,
-                                                               HttpServletRequest request) {
+                                                                        HttpServletRequest request) {
         long current = questionBankQueryRequest.getCurrent();
         long size = questionBankQueryRequest.getPageSize();
         // 限制爬虫
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 200, ErrorCode.PARAMS_ERROR);
         // 查询数据库
         Page<QuestionBank> questionBankPage = questionBankService.page(new Page<>(current, size),
                 questionBankService.getQueryWrapper(questionBankQueryRequest));
