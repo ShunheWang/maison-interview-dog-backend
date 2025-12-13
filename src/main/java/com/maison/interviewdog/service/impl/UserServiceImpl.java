@@ -308,37 +308,63 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param year   年份（为空表示当前年份）
      * @return 签到记录映射
      */
+//    @Override
+//    public Map<LocalDate, Boolean> getUserSignInRecord(long userId, Integer year) {
+//        if (year == null) {
+//            LocalDate date = LocalDate.now();
+//            year = date.getYear();
+//        }
+//        String key = RedisConstant.getUserSignInRedisKey(year, userId);
+//        RBitSet signInBitSet = redissonClient.getBitSet(key);
+//        // 一次获取redis上bitset数据; asBitSet(); jdk实现
+//        BitSet bitSet = signInBitSet.asBitSet();
+//
+//        // LinkedHashMap 保证有序
+//        Map<LocalDate, Boolean> result = new LinkedHashMap<>();
+//        // 获取当前年份的总天数
+//        int totalDays = Year.of(year).length();
+//        // 依次获取每一天的签到状态
+//        for (int dayOfYear = 1; dayOfYear <= totalDays; dayOfYear++) {
+//            // 获取 key：当前日期
+//            LocalDate currentDate = LocalDate.ofYearDay(year, dayOfYear);
+//            // 获取 value：当天是否有刷题
+//            // 注意: signInBitSit.get(xxx);
+//            // 实际signInBitSet是拿到操作bitset的对象;
+//            // 因此会循环调用redis 上获取数据;
+////            boolean hasRecord = signInBitSet.get(dayOfYear);
+//            boolean hasRecord = bitSet.get(dayOfYear);
+//
+//            // 将结果放入 map
+//            result.put(currentDate, hasRecord);
+//        }
+//        return result;
+//    }
+
     @Override
-    public Map<LocalDate, Boolean> getUserSignInRecord(long userId, Integer year) {
+    public List<Integer> getUserSignInRecord(long userId, Integer year) {
         if (year == null) {
             LocalDate date = LocalDate.now();
             year = date.getYear();
         }
         String key = RedisConstant.getUserSignInRedisKey(year, userId);
         RBitSet signInBitSet = redissonClient.getBitSet(key);
-        // 一次获取redis上bitset数据; asBitSet(); jdk实现
+        // 加载 BitSet 到内存中，避免后续读取时发送多次请求
         BitSet bitSet = signInBitSet.asBitSet();
-
-        // LinkedHashMap 保证有序
-        Map<LocalDate, Boolean> result = new LinkedHashMap<>();
+        // 统计签到的日期
+        List<Integer> dayList = new ArrayList<>();
         // 获取当前年份的总天数
         int totalDays = Year.of(year).length();
         // 依次获取每一天的签到状态
         for (int dayOfYear = 1; dayOfYear <= totalDays; dayOfYear++) {
-            // 获取 key：当前日期
-            LocalDate currentDate = LocalDate.ofYearDay(year, dayOfYear);
             // 获取 value：当天是否有刷题
-            // 注意: signInBitSit.get(xxx);
-            // 实际signInBitSet是拿到操作bitset的对象;
-            // 因此会循环调用redis 上获取数据;
-//            boolean hasRecord = signInBitSet.get(dayOfYear);
             boolean hasRecord = bitSet.get(dayOfYear);
-
-            // 将结果放入 map
-            result.put(currentDate, hasRecord);
+            if (hasRecord) {
+                dayList.add(dayOfYear);
+            }
         }
-        return result;
+        return dayList;
     }
+
 
 
 }
