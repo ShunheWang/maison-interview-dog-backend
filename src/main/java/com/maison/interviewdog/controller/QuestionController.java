@@ -10,13 +10,13 @@ import com.maison.interviewdog.common.ResultUtils;
 import com.maison.interviewdog.constant.UserConstant;
 import com.maison.interviewdog.exception.BusinessException;
 import com.maison.interviewdog.exception.ThrowUtils;
-import com.maison.interviewdog.model.dto.question.QuestionAddRequest;
-import com.maison.interviewdog.model.dto.question.QuestionEditRequest;
-import com.maison.interviewdog.model.dto.question.QuestionQueryRequest;
-import com.maison.interviewdog.model.dto.question.QuestionUpdateRequest;
+import com.maison.interviewdog.model.dto.question.*;
+import com.maison.interviewdog.model.dto.questionbankquestion.QuestionBankQuestionBatchAddRequest;
+import com.maison.interviewdog.model.dto.questionbankquestion.QuestionBankQuestionBatchRemoveRequest;
 import com.maison.interviewdog.model.entity.Question;
 import com.maison.interviewdog.model.entity.User;
 import com.maison.interviewdog.model.vo.QuestionVO;
+import com.maison.interviewdog.service.QuestionBankQuestionService;
 import com.maison.interviewdog.service.QuestionService;
 import com.maison.interviewdog.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +43,9 @@ public class QuestionController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private QuestionBankQuestionService questionBankQuestionService;
 
     // region 增删改查
 
@@ -257,5 +260,15 @@ public class QuestionController {
         Page<Question> questionPage = questionService.searchFromEs(questionQueryRequest);
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage, request));
     }
+
+    @PostMapping("/delete/batch")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> batchDeleteQuestions(@RequestBody QuestionBatchDeleteRequest questionBatchDeleteRequest,
+                                                      HttpServletRequest request) {
+        ThrowUtils.throwIf(questionBatchDeleteRequest == null, ErrorCode.PARAMS_ERROR);
+        questionService.batchDeleteQuestions(questionBatchDeleteRequest.getQuestionIdList());
+        return ResultUtils.success(true);
+    }
+
 
 }
