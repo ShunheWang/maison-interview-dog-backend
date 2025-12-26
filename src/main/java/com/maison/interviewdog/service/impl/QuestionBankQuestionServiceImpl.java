@@ -235,7 +235,7 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl<QuestionBankQue
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         // 分批处理避免长事务，假设每次处理 1000 条数据
-        int batchSize = 1000;
+        int batchSize = 1;
         int totalQuestionListSize = validQuestionIdList.size();
         for (int i = 0; i < totalQuestionListSize; i += batchSize) {
             // 生成每批次的数据
