@@ -1,6 +1,12 @@
 package com.maison.interviewdog.controller;
 
 import cn.hutool.json.JSONUtil;
+import com.alibaba.csp.sentinel.Entry;
+import com.alibaba.csp.sentinel.EntryType;
+import com.alibaba.csp.sentinel.SphU;
+import com.alibaba.csp.sentinel.Tracer;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.maison.interviewdog.annotation.AuthCheck;
 import com.maison.interviewdog.common.BaseResponse;
@@ -11,10 +17,12 @@ import com.maison.interviewdog.constant.UserConstant;
 import com.maison.interviewdog.exception.BusinessException;
 import com.maison.interviewdog.exception.ThrowUtils;
 import com.maison.interviewdog.model.dto.question.*;
+import com.maison.interviewdog.model.dto.questionbank.QuestionBankQueryRequest;
 import com.maison.interviewdog.model.dto.questionbankquestion.QuestionBankQuestionBatchAddRequest;
 import com.maison.interviewdog.model.dto.questionbankquestion.QuestionBankQuestionBatchRemoveRequest;
 import com.maison.interviewdog.model.entity.Question;
 import com.maison.interviewdog.model.entity.User;
+import com.maison.interviewdog.model.vo.QuestionBankVO;
 import com.maison.interviewdog.model.vo.QuestionVO;
 import com.maison.interviewdog.service.QuestionBankQuestionService;
 import com.maison.interviewdog.service.QuestionService;
@@ -186,6 +194,51 @@ public class QuestionController {
         Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
         // 获取封装类
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage, request));
+    }
+
+    @PostMapping("/list/page/vo/sentinel")
+    public BaseResponse<Page<QuestionVO>> listQuestionVOByPageSentinel(@RequestBody QuestionQueryRequest questionQueryRequest,
+                                                               HttpServletRequest request) {
+        ThrowUtils.throwIf(questionQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        long size = questionQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        // 基于 IP 限流
+        String remoteAddr = request.getRemoteAddr();
+        Entry entry = null;
+        try  {
+            entry = SphU.entry("listQuestionVOByPage", EntryType.IN, 1, remoteAddr);
+            // 被保护的业务逻辑
+            // 查询数据库
+            Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
+            // 获取封装类
+            return ResultUtils.success(questionService.getQuestionVOPage(questionPage, request));
+        } catch (Throwable ex) {
+            if (!BlockException.isBlockException(ex)) {
+                Tracer.trace(ex);
+                return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误");
+            }
+            // 资源访问阻止，被限流或被降级
+            if (ex instanceof DegradeException) {
+                return handleFallback(questionQueryRequest, request, ex);
+            }
+            // 限流操作
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "访问过于频繁，请稍后再试");
+        } finally {
+            if (entry != null) {
+                entry.exit(1, remoteAddr);
+            }
+        }
+
+    }
+
+    /**
+     * listQuestionVOByPageSentinel 降级操作：直接返回本地数据
+     */
+    public BaseResponse<Page<QuestionVO>> handleFallback(@RequestBody QuestionQueryRequest questionQueryRequest,
+                                                             HttpServletRequest request, Throwable ex) {
+        // 可以返回本地数据或空数据
+        return ResultUtils.success(null);
     }
 
     /**

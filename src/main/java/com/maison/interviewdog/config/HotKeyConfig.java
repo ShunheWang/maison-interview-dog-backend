@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 //@Configuration
-@ConfigurationProperties(prefix = "hotkey")
+//@ConfigurationProperties(prefix = "hotkey")
 @Data
 public class HotKeyConfig {
 
